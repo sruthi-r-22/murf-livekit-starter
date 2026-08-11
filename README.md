@@ -14,7 +14,7 @@
 
 ### Day 1–3: Core Voice & Language Capabilities
 * **Framework:** Connected LiveKit Agents SDK to orchestrate real-time WebRTC voice streams.
-* **Pipeline:** Integrated Deepgram (Nova-3) for Speech-To-Text (STT), Gemini 3.5 Flash for reasoning (LLM), and Murf Falcon ("Anisha" voice) for Text-To-Speech (TTS).
+* **Pipeline:** Integrated Deepgram (Nova-3) for Speech-To-Text (STT), Gemini Flash for reasoning (LLM), and Murf Falcon ("Anisha" voice) for Text-To-Speech (TTS).
 * **Language Rules:** Implemented strict multilingual detection with native Hindi Devanagari script output (disallowing Hinglish or English translations).
 
 ### Day 4: Persistence & Farmer Memory
@@ -26,6 +26,11 @@
 * **Data Provenance:** Injects observation and retrieval timestamps directly into returned weather reports.
 * **Graceful Fallbacks:** Handles timeouts and network drops out loud, speaking natural fallback messages instead of failing silently or inventing details.
 
+### Day 6: Telephony & Outbound Voice Engagement
+* **SIP Integration:** Configured LiveKit SIP Outbound Trunking to bridge WebRTC AI agents directly with standard Telephony/SIP clients (e.g., Linphone).
+* **Automated Dispatcher (`dial.py`):** Built a programmatic dispatch script utilizing `LiveKitAPI` to trigger proactive outbound calls to registered farmer SIP identities.
+* **Proactive Context Injection:** Programmed the outbound agent (`agent.py`) to initiate calls with an automated greeting and weather warning before listening for farmer responses.
+
 ---
 
 ## Architecture & Tech Stack
@@ -34,10 +39,11 @@
 | :--- | :--- |
 | **Orchestration** | LiveKit Agents Python SDK |
 | **STT** | Deepgram Nova-3 (Multilingual) |
-| **LLM** | Google Gemini 3.5 Flash |
+| **LLM** | Google Gemini Flash |
 | **TTS** | Murf Falcon ("Anisha" Voice) |
-| **VAD & Turn Detection**| Silero VAD + Multilingual Turn Detector |
-| **Database** | SQLite |
+| **Telephony** | LiveKit SIP Outbound Trunking |
+| **VAD & Turn Detection**| Silero VAD |
+| **Database** | SQLite (`db.py`) |
 | **Data Sources** | Open-Meteo Forecast & Geocoding APIs |
 
 ---
@@ -45,14 +51,13 @@
 ## Known Limitations
 
 * **Geocoding Dependency:** Open-Meteo relies on standardized district names; local dialect pronunciations of obscure villages may occasionally fail to resolve without exact district mappings.
-* **Local Persistence:** Farmer profiles are currently linked to a single default user context (`default_farmer`) and local SQLite database, which will be migrated to multi-tenant authentication in future steps.
+* **Local Persistence:** Farmer profiles are currently linked to local SQLite storage, which will be migrated to multi-tenant authentication in future iterations.
 
 ---
 
 ## Setup & Running Locally
 
-1. **Clone the repository and install dependencies:**
+1. **Clone the repository and navigate to backend:**
    ```bash
    git clone <your-repo-url>
-   cd <repo-folder>
-   pip install -r requirements.txt
+   cd backend
