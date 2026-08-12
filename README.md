@@ -1,17 +1,17 @@
-# 🌾 Farm Memory — Voice AI Assistant for Farmers
+# Farm Memory — Voice AI Assistant for Farmers
 
 **Farm Memory** is a real-time, bilingual voice agent built for Indian farmers as part of the **#VoiceForBharat 10 Days of Voice Agents Challenge** by Murf AI.
 
 ---
 
-## 📌 About the Project
+## About the Project
 
 * **Track:** Farm & Field
 * **Target Audience:** Indian farmers seeking weather forecasts, market prices, and personal farm guidance in English or Hindi (rendered in native Devanagari script).
 
 ---
 
-## 🚀 Daily Features & Progress
+## Daily Features & Progress
 
 ### Day 1–3: Core Voice & Language Capabilities
 * **Framework:** Connected LiveKit Agents SDK to orchestrate real-time WebRTC voice streams.
@@ -69,14 +69,14 @@
 
 ---
 
-## ⚠️ Known Limitations
+## Known Limitations
 
 * **Geocoding Dependency:** Open-Meteo relies on standardized district names; local dialect pronunciations of obscure villages may occasionally fail to resolve without exact district mappings.
 * **Local Persistence:** Farmer profiles, call metrics, and escalation tickets are currently stored in a local SQLite database, which will be migrated to multi-tenant authentication in future iterations.
 
 ---
 
-## ⚙️ Setup & Running Locally
+## Setup & Running Locally
 
 ### 1. Clone & Navigate
 ```bash
