@@ -1,17 +1,17 @@
-# Farm Memory — Voice AI Assistant for Farmers
+# 🌾 Farm Memory — Voice AI Assistant for Farmers
 
-Farm Memory is a real-time, bilingual voice agent built for Indian farmers. Developed as part of the **#VoiceForBharat 10 Days of Voice Agents Challenge** by Murf AI.
+**Farm Memory** is a real-time, bilingual voice agent built for Indian farmers as part of the **#VoiceForBharat 10 Days of Voice Agents Challenge** by Murf AI.
 
 ---
 
-## About the Project
+## 📌 About the Project
 
 * **Track:** Farm & Field
 * **Target Audience:** Indian farmers seeking weather forecasts, market prices, and personal farm guidance in English or Hindi (rendered in native Devanagari script).
 
 ---
 
-## Daily Features & Progress
+## 🚀 Daily Features & Progress
 
 ### Day 1–3: Core Voice & Language Capabilities
 * **Framework:** Connected LiveKit Agents SDK to orchestrate real-time WebRTC voice streams.
@@ -23,7 +23,7 @@ Farm Memory is a real-time, bilingual voice agent built for Indian farmers. Deve
 * **Returning User Recognition:** Enabled returning farmer identification without asking redundant onboarding questions.
 
 ### Day 5: Tools & Real Data Integration
-* `get_weather_forecast`: Live tool calling via Open-Meteo Geocoding & Weather APIs. Converts district names/aliases to coordinates to fetch real-time temperature, humidity, rainfall, and wind conditions.
+* **`get_weather_forecast`:** Live tool calling via Open-Meteo Geocoding & Weather APIs. Converts district names/aliases to coordinates to fetch real-time temperature, humidity, rainfall, and wind conditions.
 * **Data Provenance:** Injects observation and retrieval timestamps directly into returned weather reports.
 * **Graceful Fallbacks:** Handles timeouts and network drops out loud, speaking natural fallback messages instead of failing silently or inventing details.
 
@@ -33,37 +33,46 @@ Farm Memory is a real-time, bilingual voice agent built for Indian farmers. Deve
 * **Proactive Context Injection:** Programmed the outbound agent (`agent.py`) to initiate calls with an automated greeting and weather warning before listening for farmer responses.
 
 ### Day 7: Human Escalation & Structured Expert Dispatch
-* **Automated Disease & Issue Detection:** Automatically identifies critical situations (e.g., severe crop fungal infestations, unresolvable pest issues, or missing Mandi price data) requiring human agronomist intervention.
+* **Automated Issue Detection:** Automatically identifies critical situations (e.g., severe crop fungal infestations, unresolvable pest issues, or missing Mandi price data) requiring human agronomist intervention.
 * **Explicit Permission Flow:** Requests explicit permission from the farmer before generating an escalation ticket.
 * **Structured 5-Point Escalation Summary:** Generates a unique Ticket Reference ID (e.g., `FM-A42F31`) and explicitly recites all 5 required points back to the farmer aloud:
-  1. **Who needs help:** Name and Location (e.g., *Ramesh from Nashik*).
+  1. **Who needs help:** Name and Location (e.g., Ramesh from Nashik).
   2. **What happened:** Exact problem description and crop risk.
-  3. **What the agent checked:** Diagnostic steps verified prior to escalation (e.g., *Nashik weather showing 95% humidity and drizzle*).
-  4. **Urgency:** Priority level (*HIGH*, *MEDIUM*, or *LOW*).
-  5. **Language & Follow-up method:** Preferred language and contact method (e.g., *Hindi via Phone Call*).
+  3. **What the agent checked:** Diagnostic steps verified prior to escalation.
+  4. **Urgency:** Priority level (`HIGH`, `MEDIUM`, or `LOW`).
+  5. **Language & Follow-up method:** Preferred language and contact method (e.g., Hindi via Phone Call).
 * **Database Ticket Persistence:** Saves all ticket fields and agent diagnostics into a dedicated SQLite `escalations` table for expert review.
+
+### Day 8: Call Analytics & Performance Dashboard
+* **Unified SQLite Logging Pipeline:** Configured absolute path resolution in `db.py` to ensure seamless, concurrency-safe writes between `agent.py` and the dashboard interface.
+* **Call Outcome Logging:** Automatically logs post-call metrics including `call_id`, `status` (`SUCCESS`/`FAILED`), connection channel (`WebRTC`/`SIP`), and call completion reasons.
+* **Real-time Streamlit Dashboard (`dashboard.py`):**
+  * **Core Metric Cards:** Displays live total call count, successful calls, and failed calls.
+  * **Interactive History Table:** Renders recent call logs sorted chronologically with status tags and resolution descriptions.
+  * **On-Demand Cache Management:** Includes manual cache-clearing mechanisms (`Refresh Data`) for immediate metric syncing.
 
 ---
 
-## Architecture & Tech Stack
+## 🛠️ Architecture & Tech Stack
 
 | Component | Provider / Technology |
-|---|---|
+| :--- | :--- |
 | **Orchestration** | LiveKit Agents Python SDK |
 | **STT (Speech-to-Text)** | Deepgram Nova-3 (Multilingual) |
 | **LLM (Brain)** | Google Gemini (`gemini-3.5-flash`) |
-| **TTS (Text-to-Speech)** | Murf Falcon (`Anisha` voice, `Conversation` style) |
+| **TTS (Text-to-Speech)** | Murf Falcon ("Anisha" voice, Conversation style) |
 | **Telephony** | LiveKit SIP Outbound Trunking |
 | **VAD & Turn Detection** | Silero VAD + Multilingual Turn Detection Model |
-| **Database** | SQLite (`db.py` - Farmer Memory & Escalation Tickets) |
+| **Database** | SQLite (`db.py` - Shared Persistence for Memory, Escalations & Call Logs) |
+| **Analytics Dashboard** | Streamlit (`dashboard.py`) & Pandas |
 | **External APIs** | Open-Meteo Forecast & Geocoding APIs |
 
 ---
 
-## Known Limitations
+## ⚠️ Known Limitations
 
 * **Geocoding Dependency:** Open-Meteo relies on standardized district names; local dialect pronunciations of obscure villages may occasionally fail to resolve without exact district mappings.
-* **Local Persistence:** Farmer profiles and escalation tickets are currently stored in a local SQLite database, which will be migrated to multi-tenant authentication in future iterations.
+* **Local Persistence:** Farmer profiles, call metrics, and escalation tickets are currently stored in a local SQLite database, which will be migrated to multi-tenant authentication in future iterations.
 
 ---
 
