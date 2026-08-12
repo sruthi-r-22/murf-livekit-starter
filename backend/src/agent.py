@@ -1,5 +1,6 @@
 import sys
 import asyncio
+import uuid  # Added for Call ID generation
 
 # ============================================================
 # WINDOWS ASYNCIO FIX
@@ -50,6 +51,7 @@ from db import (
     get_farmer,
     save_farmer,
     save_escalation,
+    log_call_outcome,  # Added for Day 8 Call Logging
 )
 
 # ============================================================
@@ -82,6 +84,12 @@ DYNAMIC DUAL-LANGUAGE SUPPORT (ENGLISH & HINDI)
 4. If the farmer switches languages mid-conversation -> Switch your response language to match their latest turn instantly.
 5. If the farmer mixes both (Hinglish) -> Respond in clear, simple English or simple Hindi using Devanagari based on what is easiest to speak out loud.
 6. Keep responses warm, conversational, and brief (1-2 sentences). Do NOT use markdown asterisks (*), hashtags (#), or bullet points in spoken text.
+
+============================================================
+CONVERSATION COMPLETION
+============================================================
+
+If the farmer states that they have no more questions, express gratitude or say goodbye (e.g., "I don't have any question", "Thank you", "No further help needed"), call `finish_conversation` immediately to record the call as successful.
 
 ============================================================
 HUMAN ESCALATION RULES (DAY 7 CHALLENGE REQUIREMENT)
@@ -135,9 +143,11 @@ class Assistant(Agent):
         self,
         memory_context: str = "",
         saved_district: str = "",
+        call_state: dict = None,
     ):
 
         self.saved_district = saved_district.strip()
+        self.call_state = call_state or {}
 
         full_instructions = (
             SYSTEM_PROMPT
@@ -151,6 +161,26 @@ class Assistant(Agent):
         super().__init__(
             instructions=full_instructions
         )
+
+    # ========================================================
+    # FINISH CONVERSATION TOOL
+    # ========================================================
+
+    @function_tool
+    async def finish_conversation(
+        self,
+        context: RunContext,
+        reason: str = "Farmer Inquiry Satisfied",
+    ) -> str:
+        """
+        Call this tool when the user indicates they have no more questions, are satisfied, or want to wrap up the call.
+        """
+        logger.info(f"CONVERSATION COMPLETED: {reason}")
+        if self.call_state:
+            self.call_state["status"] = "SUCCESS"
+            self.call_state["reason"] = reason
+
+        return "Thank you for using Farm Memory! Have a great day and happy farming!"
 
     # ========================================================
     # HUMAN ESCALATION TOOL (WITH DISCORD NOTIFICATION)
@@ -191,6 +221,11 @@ class Assistant(Agent):
                 language=language_and_contact,
                 preferred_contact=language_and_contact,
             )
+
+            # --- DAY 8: MARK CALL SUCCESS ---
+            if self.call_state:
+                self.call_state["status"] = "SUCCESS"
+                self.call_state["reason"] = "Human Escalation Ticket Created"
 
             # 2. Dispatch real-time Flag to Discord Webhook
             discord_url = os.getenv("DISCORD_WEBHOOK_URL")
@@ -340,6 +375,11 @@ class Assistant(Agent):
                 weather_description = self._weather_code_to_text(weather_code)
                 retrieved_at = datetime.now().strftime("%d %B %Y at %I:%M %p")
 
+                # --- DAY 8: MARK CALL SUCCESS ---
+                if self.call_state:
+                    self.call_state["status"] = "SUCCESS"
+                    self.call_state["reason"] = "Weather Forecast Delivered"
+
                 return (
                     f"REAL WEATHER DATA from Open-Meteo. "
                     f"Location: {resolved_name}, {admin1}, {country}. "
@@ -452,6 +492,28 @@ async def my_agent(ctx: JobContext):
 
     ctx.log_context_fields = {"room": ctx.room.name}
 
+    # ========================================================
+    # DAY 8: INITIALIZE CALL METRICS
+    # ========================================================
+    call_id = f"CALL-{uuid.uuid4().hex[:6].upper()}"
+    call_state = {
+        "status": "FAILED",
+        "reason": "Call ended early / Inquiry incomplete"
+    }
+
+    # Automatically save metrics when user disconnects or process shuts down
+    @ctx.add_shutdown_callback
+    async def on_shutdown():
+        log_call_outcome(
+            call_id=call_id,
+            user_id=DEMO_USER_ID,
+            channel="WebRTC",
+            status=call_state["status"],
+            reason=call_state["reason"],
+        )
+        logger.info(f"Call logged: {call_id} -> {call_state['status']} ({call_state['reason']})")
+    # ========================================================
+
     farmer = get_farmer(DEMO_USER_ID)
 
     # Automatically seed Ramesh's profile into DB if missing
@@ -491,6 +553,7 @@ NEVER ask the farmer for their name, district, or crops again because they are a
     assistant = Assistant(
         memory_context=memory_context,
         saved_district=saved_district,
+        call_state=call_state,
     )
 
     session = AgentSession(
@@ -499,7 +562,7 @@ NEVER ask the farmer for their name, district, or crops again because they are a
             language="multi",
         ),
         llm=google.LLM(
-            model="gemini-3.5-flash",
+            model="gemini-3.5-flash",  
         ),
         tts=murf.TTS(
             voice="Anisha",
@@ -514,19 +577,31 @@ NEVER ask the farmer for their name, district, or crops again because they are a
         preemptive_generation=False,
     )
 
-    await ctx.connect()
+    try:
+        await ctx.connect()
 
-    await session.start(
-        agent=assistant,
-        room=ctx.room,
-    )
+        await session.start(
+            agent=assistant,
+            room=ctx.room,
+        )
 
-    greeting_instructions = f"""
+        greeting_instructions = f"""
 This is a RETURNING farmer named {saved_name}.
 Greet them warmly in 1 short sentence as Farm Memory:
 "Namaste {saved_name}! How can I help you with your {saved_crops} crop in {saved_district} today?"
 """
-    await session.generate_reply(instructions=greeting_instructions)
+        await session.generate_reply(instructions=greeting_instructions)
+
+    except Exception as exc:
+        error_str = str(exc)
+        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+            call_state["status"] = "FAILED"
+            call_state["reason"] = "API Quota Limit Exceeded (429)"
+        else:
+            call_state["status"] = "FAILED"
+            call_state["reason"] = f"Runtime Error: {type(exc).__name__}"
+        logger.error(f"Session error captured for {call_id}: {exc}")
+        raise exc
 
 
 # ============================================================
