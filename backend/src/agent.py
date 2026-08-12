@@ -14,7 +14,9 @@ if sys.platform == "win32":
 # IMPORTS
 # ============================================================
 
+import os
 import logging
+import requests
 from datetime import datetime
 
 import httpx
@@ -79,7 +81,7 @@ DYNAMIC DUAL-LANGUAGE SUPPORT (ENGLISH & HINDI)
 3. If the farmer speaks Hindi -> Respond in Hindi using Devanagari script (e.g., नमस्ते, बारिश). NEVER use Romanized Hindi / Hinglish text (e.g., never write "namaste" or "baarish").
 4. If the farmer switches languages mid-conversation -> Switch your response language to match their latest turn instantly.
 5. If the farmer mixes both (Hinglish) -> Respond in clear, simple English or simple Hindi using Devanagari based on what is easiest to speak out loud.
-6. Keep responses warm, conversational, and brief (1-2 sentences).
+6. Keep responses warm, conversational, and brief (1-2 sentences). Do NOT use markdown asterisks (*), hashtags (#), or bullet points in spoken text.
 
 ============================================================
 HUMAN ESCALATION RULES (DAY 7 CHALLENGE REQUIREMENT)
@@ -151,7 +153,7 @@ class Assistant(Agent):
         )
 
     # ========================================================
-    # HUMAN ESCALATION TOOL (DAY 7 ENHANCED)
+    # HUMAN ESCALATION TOOL (WITH DISCORD NOTIFICATION)
     # ========================================================
 
     @function_tool
@@ -180,6 +182,7 @@ class Assistant(Agent):
         )
 
         try:
+            # 1. Save to SQLite database
             ticket_id = save_escalation(
                 farmer_name=who_needs_help,
                 reason=what_happened,
@@ -189,12 +192,40 @@ class Assistant(Agent):
                 preferred_contact=language_and_contact,
             )
 
+            # 2. Dispatch real-time Flag to Discord Webhook
+            discord_url = os.getenv("DISCORD_WEBHOOK_URL")
+            if discord_url:
+                payload = {
+                    "username": "Farm Memory Alert Bot",
+                    "avatar_url": "https://cdn-icons-png.flaticon.com/512/606/606161.png",
+                    "embeds": [
+                        {
+                            "title": f"🚨 NEW FARMER ESCALATION TICKET: {ticket_id}",
+                            "color": 15158332 if urgency.upper() == "HIGH" else 3066993,
+                            "fields": [
+                                {"name": "👤 Who Needs Help", "value": who_needs_help, "inline": True},
+                                {"name": "⚠️ Urgency", "value": urgency.upper(), "inline": True},
+                                {"name": "🗣️ Preferred Follow-Up", "value": language_and_contact, "inline": True},
+                                {"name": "🌾 Problem Reported", "value": what_happened, "inline": False},
+                                {"name": "🔍 Agent Diagnostics Checked", "value": what_agent_checked, "inline": False},
+                            ],
+                            "footer": {"text": "Farm Memory Voice Agent • Day 7 Challenge"}
+                        }
+                    ]
+                }
+                try:
+                    res = requests.post(discord_url, json=payload, timeout=5)
+                    res.raise_for_status()
+                    logger.info(f"Discord escalation flag posted successfully for {ticket_id}")
+                except Exception as discord_err:
+                    logger.error(f"Failed to post to Discord webhook: {discord_err}")
+
             return (
                 f"TICKET_CREATED | Reference ID: {ticket_id}\n"
                 f"Confirm all 5 points aloud to the farmer:\n"
-                f"1. Who: {who_needs_help}\n"
+                f"1. Who needs help: {who_needs_help}\n"
                 f"2. What happened: {what_happened}\n"
-                f"3. Checked by agent: {what_agent_checked}\n"
+                f"3. What I checked: {what_agent_checked}\n"
                 f"4. Urgency: {urgency}\n"
                 f"5. Follow-up: {language_and_contact}"
             )
