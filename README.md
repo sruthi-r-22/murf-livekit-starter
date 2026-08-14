@@ -51,6 +51,11 @@
   * **Interactive History Table:** Renders recent call logs sorted chronologically with status tags and resolution descriptions.
   * **On-Demand Cache Management:** Includes manual cache-clearing mechanisms (`Refresh Data`) for immediate metric syncing.
 
+### Day 9: Multi-Agent Architecture & Specialist Handoff
+* **Specialist Agent Integration:** Created a dedicated `CropSpecialist` agent focused specifically on plant health, pest damage, yellow leaves, and soil care.
+* **Seamless Contextual Handoff:** Implemented a `transfer_to_crop_specialist` tool on the main agent to route complex crop queries while passing the ongoing chat history seamlessly.
+* **Transparent Communication Flow:** The main agent announces the transition clearly, and the specialist agent takes over with full context so the farmer never needs to repeat their problem.
+
 ---
 
 ## 🛠️ Architecture & Tech Stack
@@ -59,8 +64,8 @@
 | :--- | :--- |
 | **Orchestration** | LiveKit Agents Python SDK |
 | **STT (Speech-to-Text)** | Deepgram Nova-3 (Multilingual) |
-| **LLM (Brain)** | Google Gemini (`gemini-3.5-flash`) |
-| **TTS (Text-to-Speech)** | Murf Falcon ("Anisha" voice, Conversation style) |
+| **LLM (Brain)** | Groq / Llama-3.3-70b / Google Gemini |
+| **TTS (Text-to-Speech)** | Murf Falcon ("Anisha" voice, Conversational style) |
 | **Telephony** | LiveKit SIP Outbound Trunking |
 | **VAD & Turn Detection** | Silero VAD + Multilingual Turn Detection Model |
 | **Database** | SQLite (`db.py` - Shared Persistence for Memory, Escalations & Call Logs) |
@@ -80,5 +85,5 @@
 
 ### 1. Clone & Navigate
 ```bash
-git clone <your-repo-url>
-cd backend
+git clone [https://github.com/sruthi-r-22/murf-livekit-starter.git](https://github.com/sruthi-r-22/murf-livekit-starter.git)
+cd murf-livekit-starter
